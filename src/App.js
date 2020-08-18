@@ -7,10 +7,21 @@ import Header from "./components/Header";
 
 class App extends Component {
   state = {
-    transactions: [],
+    transactions: JSON.parse(localStorage.getItem("calcMoney")) || [],
     description: "",
     amount: "",
+    resultIncome: 0,
+    resultExpenses: 0,
+    totalBalance: 0,
   };
+
+  componentWillMount() {
+    this.getTotalBalance();
+  }
+
+  componentDidUpdate() {
+    this.addStorage();
+  }
 
   addTransaction = (add) => {
     const transactions = [
@@ -26,13 +37,13 @@ class App extends Component {
     this.setState({
       transactions,
       description: "",
-      amount: ""
-    });
+      amount: "",
+    }, this.getTotalBalance);
   };
 
   addAmount = (e) => {
     this.setState({
-      amount: e.target.value,
+      amount: Number(e.target.value),
     });
   };
 
@@ -42,14 +53,61 @@ class App extends Component {
     });
   };
 
+  getIncome() {
+    return this.state.transactions
+      .filter((item) => item.add)
+      .reduce((acc, item) => item.amount + acc, 0);
+  }
+
+  getExpenses() {
+    return this.state.transactions
+      .filter((item) => !item.add)
+      .reduce((acc, item) => item.amount + acc, 0);
+  }
+
+  getTotalBalance() {
+    const resultIncome = this.getIncome();
+    const resultExpenses = this.getExpenses();
+    const totalBalance = resultIncome - resultExpenses;
+
+    this.setState({
+      resultIncome,
+      resultExpenses,
+      totalBalance,
+    });
+  }
+
+  addStorage() {
+    localStorage.setItem("calcMoney", JSON.stringify(this.state.transactions));
+  }
+
+  deleteTransaction = (id) => {
+    const transactions = this.state.transactions.filter(
+      (item) => item.id !== id
+    );
+    this.setState(
+      {
+        transactions,
+      },
+      this.getTotalBalance
+    );
+  };
+
   render() {
     return (
       <div className="App">
         <main>
           <div className="container">
             <Header />
-            <Total />
-            <History transactions={this.state.transactions}/>
+            <Total
+              resultExpenses={this.state.resultExpenses}
+              resultIncome={this.state.resultIncome}
+              totalBalance={this.state.totalBalance}
+            />
+            <History
+              transactions={this.state.transactions}
+              deleteTransaction={this.deleteTransaction}
+            />
             <Operation
               addTransaction={this.addTransaction}
               addAmount={this.addAmount}
